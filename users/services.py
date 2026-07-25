@@ -1,11 +1,11 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import bcrypt
-from fastapi import Depends, HTTPException, status
-from fastapi.security import APIKeyHeader
+from fastapi import HTTPException, status
 from jose import JWTError, jwt
 
 from users.managers import user_manager
+from users.models import AdminUser, RegularUser
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 1
 REFRESH_TOKEN_EXPIRE_MINUTES = 10
@@ -14,6 +14,24 @@ ALGORITHM = "HS256"
 
 
 class UserService:
+    @staticmethod
+    def register_user(username, password, email, is_admin, permissions):
+        hashed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+        if is_admin:
+            user = AdminUser(username=username, password=hashed_password, email=email)
+        else:
+            user = RegularUser(
+                username=username,
+                password=hashed_password,
+                email=email,
+                permissions=permissions,
+            )
+        return user_manager.add_user(user)
+
+    @staticmethod
+    def get_all_users():
+        return user_manager.get_all_users()
+
     @staticmethod
     def verify_password(plain_password, hashed_password):
         return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
@@ -25,17 +43,37 @@ class UserService:
             return None
         return user
 
+    @classmethod
+    def login(cls, username, password):
+        user = cls.authenticate_user(username, password)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid username or password")
+
+        access_token = cls.create_token(
+            data={"sub": user.username, "type": "access"},
+            expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+        )
+        refresh_token = cls.create_token(
+            data={"sub": user.username, "type": "refresh"},
+            expires_delta=timedelta(minutes=REFRESH_TOKEN_EXPIRE_MINUTES),
+        )
+        return {"access_token": access_token, "refresh_token": refresh_token}
+
+    @classmethod
+    def refresh_access_token(cls, token):
+        username = cls.verify_token(token, "refresh")
+        access_token = cls.create_token(
+            data={"sub": username, "type": "access"},
+            expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+        )
+        return {"access_token": access_token}
+
     @staticmethod
     def create_token(data, expires_delta):
         payload = data.copy()
         expire = datetime.now(timezone.utc) + expires_delta
         payload.update({"exp": expire})
         return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
-
-    @classmethod
-    def get_current_user(cls, token: str = Depends(APIKeyHeader(name="Authorization"))):
-        username = cls.verify_token(token, "access")
-        return user_manager.users.get(username)
 
     @staticmethod
     def verify_token(token: str, token_type: str):

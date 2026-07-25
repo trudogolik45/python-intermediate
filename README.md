@@ -34,13 +34,16 @@
 ## Структура
 
 ```
-main.py              — сборка приложения, роутеры под префиксом /v1/api
-products/managers.py — ProductManager
-products/views.py    — модель Product и эндпоинты товаров
-users/models.py      — BaseUser, AdminUser, RegularUser, PERMISSIONS
-users/managers.py    — UserManager
-users/services.py    — UserService: хеширование пароля, выпуск и проверка JWT
-users/views.py       — эндпоинты пользователей
+main.py                — сборка приложения, роутеры под префиксом /v1/api
+products/models.py     — модель Product
+products/managers.py   — ProductManager: хранилище товаров
+products/services.py   — ProductService: логика операций и HTTP-ошибки
+products/views.py      — эндпоинты товаров
+users/models.py        — BaseUser, AdminUser, RegularUser, PERMISSIONS
+users/managers.py      — UserManager: хранилище пользователей
+users/services.py      — UserService: регистрация, хеширование пароля, выпуск и проверка JWT
+users/dependencies.py  — get_current_user: пользователь из токена в заголовке
+users/views.py         — эндпоинты пользователей
 ```
 
 ## Эндпоинты
