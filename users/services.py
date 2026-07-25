@@ -32,12 +32,23 @@ class UserService:
         payload.update({"exp": expire})
         return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
+    @classmethod
+    def get_current_user(cls, token: str = Depends(APIKeyHeader(name="Authorization"))):
+        username = cls.verify_token(token, "access")
+        return user_manager.users.get(username)
+
     @staticmethod
-    def get_current_user(token: str = Depends(APIKeyHeader(name="Authorization"))):
+    def verify_token(token: str, token_type: str):
         try:
             payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-            username = payload.get("sub")
-            user = user_manager.users.get(username)
+            exp = payload.get("exp")
+            current_token_type = payload.get("type")
+            if (
+                current_token_type != token_type
+                or not exp
+                or datetime.now(timezone.utc) > datetime.fromtimestamp(exp, timezone.utc)
+            ):
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
+            return payload.get("sub")
         except JWTError:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication error")
-        return user
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")

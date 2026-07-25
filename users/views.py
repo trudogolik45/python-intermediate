@@ -53,9 +53,24 @@ def login(username: str, password: str):
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     refresh_token_expires = timedelta(minutes=REFRESH_TOKEN_EXPIRE_MINUTES)
 
-    access_token = UserService.create_token(data={"sub": user.username}, expires_delta=access_token_expires)
-    refresh_token = UserService.create_token(data={"sub": user.username}, expires_delta=refresh_token_expires)
+    access_token = UserService.create_token(
+        data={"sub": user.username, "type": "access"}, expires_delta=access_token_expires
+    )
+    refresh_token = UserService.create_token(
+        data={"sub": user.username, "type": "refresh"}, expires_delta=refresh_token_expires
+    )
     return {"access_token": access_token, "refresh_token": refresh_token}
+
+
+@user_router.get("/refresh")
+def refresh_token(token: str):
+    username = UserService.verify_token(token, "refresh")
+
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = UserService.create_token(
+        data={"sub": username, "type": "access"}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token}
 
 
 @user_router.get("/me")
