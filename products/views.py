@@ -4,6 +4,7 @@ from products.managers import product_manager
 
 products_router = APIRouter(prefix="/products", tags=["products"])
 
+
 class Product(BaseModel):
     id: int
     name: str

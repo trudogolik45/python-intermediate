@@ -24,7 +24,7 @@ class ProductManager:
         if not self._is_product_exists(product_id):
             raise HTTPException(status_code=404, detail="Product not found")
         del self.products[product_id]
-        
+
     def _is_product_exists(self, product_id):
         return product_id in self.products
 
