@@ -26,7 +26,8 @@ class UserService:
                 email=email,
                 permissions=permissions,
             )
-        return user_manager.add_user(user)
+        if not user_manager.add_user(user):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User already exists")
 
     @staticmethod
     def get_all_users():
@@ -38,7 +39,7 @@ class UserService:
 
     @classmethod
     def authenticate_user(cls, username, password):
-        user = user_manager.users.get(username)
+        user = user_manager.get_user(username)
         if not user or not cls.verify_password(password, user.password):
             return None
         return user
