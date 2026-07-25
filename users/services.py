@@ -1,9 +1,9 @@
 from datetime import datetime, timedelta, timezone
 
 import bcrypt
-from fastapi import HTTPException, status
 from jose import JWTError, jwt
 
+from users.exceptions import InvalidCredentialsError, InvalidTokenError, UserAlreadyExistsError
 from users.managers import user_manager
 from users.models import AdminUser, RegularUser
 
@@ -27,7 +27,7 @@ class UserService:
                 permissions=permissions,
             )
         if not user_manager.add_user(user):
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User already exists")
+            raise UserAlreadyExistsError(username)
 
     @staticmethod
     def get_all_users():
@@ -48,7 +48,7 @@ class UserService:
     def login(cls, username, password):
         user = cls.authenticate_user(username, password)
         if not user:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid username or password")
+            raise InvalidCredentialsError()
 
         access_token = cls.create_token(
             data={"sub": user.username, "type": "access"},
@@ -87,7 +87,7 @@ class UserService:
                 or not exp
                 or datetime.now(timezone.utc) > datetime.fromtimestamp(exp, timezone.utc)
             ):
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
+                raise InvalidTokenError()
             return payload.get("sub")
-        except JWTError:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
+        except JWTError as error:
+            raise InvalidTokenError() from error

@@ -23,7 +23,11 @@
 
 ### 4. Авторизация по правам
 
-Разрешения собраны в `Permission` — строковый Enum, поэтому опечатка в праве ловится на входе, а не молча превращается в отказ доступа. Каждому эндпоинту товаров задан минимальный набор прав через `check_permissions`: просмотру нужен `view_product`, созданию — `add_product`, обновлению — `update_product`, удалению — `delete_product`. Зависимость берёт пользователя из `get_current_user` и сверяет требуемые права с его `permissions`; не хватает хотя бы одного — 403. Отдельной ветки для администратора нет: `AdminUser` создаётся с полным набором прав и проходит ту же проверку, что и все.
+Разрешения собраны в `Permission` — строковый Enum, поэтому опечатка в праве ловится на входе, а не молча превращается в отказ доступа. Каждому эндпоинту товаров задан минимальный набор прав декоратором `require_permissions`: просмотру нужен `view_product`, созданию — `add_product`, обновлению — `update_product`, удалению — `delete_product`; списку пользователей — `view_user`. Декоратор берёт пользователя из параметра `current_user`, который приходит зависимостью `get_current_user`, и сверяет требуемые права с его `permissions`; не хватает хотя бы одного — 403. Отдельной ветки для администратора нет: `AdminUser` создаётся с полным набором прав и проходит ту же проверку, что и все.
+
+### 5. Исключения и декораторы
+
+Сервисы не знают про HTTP: `ProductService` поднимает `ProductNotFoundError` и `ProductAlreadyExistsError`, `UserService` — `UserAlreadyExistsError`, `InvalidCredentialsError` и `InvalidTokenError`. В коды ответа их переводят декораторы `handle_products_errors` и `handle_users_errors` на эндпоинтах, так что try/except не расползается по обработчикам. Декораторы обёрнуты `functools.wraps`, поэтому FastAPI по цепочке `__wrapped__` видит настоящую сигнатуру обработчика и собирает схему как обычно.
 
 ## Концепции
 
@@ -41,13 +45,17 @@
 main.py                — сборка приложения, роутеры под префиксом /v1/api
 products/models.py     — модель Product
 products/managers.py   — ProductManager: хранилище товаров
-products/services.py   — ProductService: логика операций и HTTP-ошибки
+products/services.py   — ProductService: логика операций над товарами
+products/exceptions.py — исключения товаров: не найден, уже существует
+products/decorators.py — handle_products_errors: перевод исключений товаров в HTTP-ответы
 products/views.py      — эндпоинты товаров
 users/models.py        — BaseUser, AdminUser, RegularUser
-users/permissions.py   — Permission: перечисление прав на операции с товарами
+users/permissions.py   — Permission: перечисление прав
 users/managers.py      — UserManager: хранилище пользователей
 users/services.py      — UserService: регистрация, хеширование пароля, выпуск и проверка JWT
-users/dependencies.py  — get_current_user и check_permissions
+users/exceptions.py    — исключения пользователей: дубликат, неверные учётные данные, негодный токен
+users/decorators.py    — handle_users_errors и require_permissions
+users/dependencies.py  — get_current_user
 users/views.py         — эндпоинты пользователей
 ```
 
@@ -60,7 +68,7 @@ users/views.py         — эндпоинты пользователей
 | PUT | `/v1/api/products/{product_id}` | обновить товар | `update_product` |
 | DELETE | `/v1/api/products/{product_id}` | удалить товар | `delete_product` |
 | POST | `/v1/api/users` | добавить пользователя | — |
-| GET | `/v1/api/users` | список пользователей | — |
+| GET | `/v1/api/users` | список пользователей | `view_user` |
 | GET | `/v1/api/users/login` | получить пару access- и refresh-токенов | — |
 | GET | `/v1/api/users/refresh` | обменять refresh-токен на новый access | — |
 | GET | `/v1/api/users/me` | текущий пользователь по токену | только токен |
