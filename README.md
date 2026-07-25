@@ -17,6 +17,10 @@
 
 Метод `get_info` объявлен в `BaseUser` и отдаёт описание пользователя. `UserManager` добавляет пользователей и возвращает список их описаний.
 
+### 3. Аутентификация по JWT
+
+`UserService` собирает работу с учётными данными: пароль хешируется через bcrypt при регистрации и проверяется при логине, а `/users/login` выдаёт пару токенов. Access живёт минуту, refresh — десять; тип записан в payload полем `type`, поэтому refresh не пройдёт туда, где нужен access, и наоборот. Обменять refresh на новый access можно через `/users/refresh`. Защищённые эндпоинты получают пользователя зависимостью `get_current_user`, которая читает токен из заголовка `Authorization`.
+
 ## Концепции
 
 **Инкапсуляция.** Атрибуты `BaseUser` инициализируются через `__init__`, наружу отдаётся только `get_info()` — внутреннее устройство объекта не торчит в эндпоинтах. Так же и с `UserManager`: словарь `self.users` меняется только через `add_user` и читается через `get_all_users`. В `ProductManager` проверка существования вынесена в protected `_is_product_exists`, наружу этот метод не предназначен.
@@ -35,6 +39,7 @@ products/managers.py — ProductManager
 products/views.py    — модель Product и эндпоинты товаров
 users/models.py      — BaseUser, AdminUser, RegularUser, PERMISSIONS
 users/managers.py    — UserManager
+users/services.py    — UserService: хеширование пароля, выпуск и проверка JWT
 users/views.py       — эндпоинты пользователей
 ```
 
@@ -48,11 +53,13 @@ users/views.py       — эндпоинты пользователей
 | DELETE | `/v1/api/products/{product_id}` | удалить товар |
 | POST | `/v1/api/users` | добавить пользователя |
 | GET | `/v1/api/users` | список пользователей |
+| GET | `/v1/api/users/login` | получить пару access- и refresh-токенов |
+| GET | `/v1/api/users/refresh` | обменять refresh-токен на новый access |
+| GET | `/v1/api/users/me` | текущий пользователь по токену |
 
 ## Текущий спринт
 
-1. Аутентификация пользователей через access- и refresh-токены.
-2. Авторизация на эндпоинтах управления товарами: доступ к операции определяется правами пользователя из `permissions`.
+1. Авторизация на эндпоинтах управления товарами: доступ к операции определяется правами пользователя из `permissions`.
 
 ## Запуск
 - `uv run fastapi dev`
