@@ -11,7 +11,7 @@ user_router = APIRouter(prefix="/users", tags=["users"])
 def add_user(username: str, email: str, is_admin: bool, permissions: Optional[List[str]] = Query(
     default=None,
     title="Permissions",
-    example=PERMISSIONS,
+    examples=[PERMISSIONS],
     enum=PERMISSIONS
 )):
     if is_admin:
