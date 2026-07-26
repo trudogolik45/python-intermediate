@@ -26,7 +26,7 @@ async def add_user(
 @user_router.get("")
 @require_permissions(Permission.VIEW_USER)
 async def get_all_users(current_user=Depends(get_current_user)):
-    return UserService.get_all_users()
+    return [user.get_info() for user in UserService.get_all_users()]
 
 
 @user_router.get("/login")

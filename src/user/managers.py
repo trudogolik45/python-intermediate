@@ -15,7 +15,7 @@ class UserManager:
         return self.users.get(username)
 
     def get_all_users(self):
-        return [user.get_info() for user in self.users.values()]
+        return list(self.users.values())
 
     def _is_user_exists(self, username):
         return username in self.users
