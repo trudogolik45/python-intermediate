@@ -2,8 +2,8 @@ from functools import wraps
 
 from fastapi import HTTPException, status
 
-from users.exceptions import InvalidCredentialsError, InvalidTokenError, UserAlreadyExistsError
-from users.permissions import Permission
+from core.permissions import Permission
+from core.user.exceptions import InvalidCredentialsError, InvalidTokenError, UserAlreadyExistsError
 
 
 def handle_users_errors(func):

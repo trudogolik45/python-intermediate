@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends
 
-from products.decorators import handle_products_errors
-from products.models import Product
-from products.services import ProductService
-from users.decorators import require_permissions
-from users.dependencies import get_current_user
-from users.permissions import Permission
+from api.rest.product.decorators import handle_products_errors
+from api.rest.user.decorators import require_permissions
+from api.rest.user.dependencies import get_current_user
+from core.permissions import Permission
+from core.product.entities import Product
+from core.product.services import ProductService
 
 products_router = APIRouter(prefix="/products", tags=["products"])
 

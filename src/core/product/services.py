@@ -1,6 +1,6 @@
-from products.exceptions import ProductAlreadyExistsError, ProductNotFoundError
-from products.managers import product_manager
-from products.models import Product
+from core.product.entities import Product
+from core.product.exceptions import ProductAlreadyExistsError, ProductNotFoundError
+from product.managers import product_manager
 
 
 class ProductService:

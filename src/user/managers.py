@@ -1,4 +1,4 @@
-from users.models import BaseUser
+from core.user.entities import BaseUser
 
 
 class UserManager:

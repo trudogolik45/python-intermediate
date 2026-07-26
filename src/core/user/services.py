@@ -3,9 +3,9 @@ from datetime import datetime, timedelta, timezone
 import bcrypt
 from jose import JWTError, jwt
 
-from users.exceptions import InvalidCredentialsError, InvalidTokenError, UserAlreadyExistsError
-from users.managers import user_manager
-from users.models import AdminUser, RegularUser
+from core.user.entities import AdminUser, RegularUser
+from core.user.exceptions import InvalidCredentialsError, InvalidTokenError, UserAlreadyExistsError
+from user.managers import user_manager
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 1
 REFRESH_TOKEN_EXPIRE_MINUTES = 10

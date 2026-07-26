@@ -1,4 +1,4 @@
-from users.permissions import Permission
+from core.permissions import Permission
 
 
 class BaseUser:

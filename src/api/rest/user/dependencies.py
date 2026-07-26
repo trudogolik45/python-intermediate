@@ -1,10 +1,10 @@
 from fastapi import Depends
 from fastapi.security import APIKeyHeader
 
-from users.decorators import handle_users_errors
-from users.exceptions import InvalidTokenError
-from users.managers import user_manager
-from users.services import UserService
+from api.rest.user.decorators import handle_users_errors
+from core.user.exceptions import InvalidTokenError
+from core.user.services import UserService
+from user.managers import user_manager
 
 
 @handle_users_errors

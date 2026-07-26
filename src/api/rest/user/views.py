@@ -2,10 +2,10 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Query
 
-from users.decorators import handle_users_errors, require_permissions
-from users.dependencies import get_current_user
-from users.permissions import Permission
-from users.services import UserService
+from api.rest.user.decorators import handle_users_errors, require_permissions
+from api.rest.user.dependencies import get_current_user
+from core.permissions import Permission
+from core.user.services import UserService
 
 user_router = APIRouter(prefix="/users", tags=["users"])
 
