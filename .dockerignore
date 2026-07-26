@@ -5,6 +5,7 @@
 __pycache__
 *.pyc
 docs
+media
 CLAUDE.md
 Dockerfile
 .dockerignore
