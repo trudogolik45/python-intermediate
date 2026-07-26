@@ -1,0 +1,10 @@
+.venv
+.git
+.gitignore
+.ruff_cache
+__pycache__
+*.pyc
+docs
+CLAUDE.md
+Dockerfile
+.dockerignore
