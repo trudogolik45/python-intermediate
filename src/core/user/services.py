@@ -33,6 +33,14 @@ class UserService:
     def get_all_users():
         return user_manager.get_all_users()
 
+    @classmethod
+    def get_current_user(cls, token):
+        username = cls.verify_token(token, "access")
+        user = user_manager.get_user(username)
+        if not user:
+            raise InvalidTokenError("User not found")
+        return user
+
     @staticmethod
     def verify_password(plain_password, hashed_password):
         return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))

@@ -2,15 +2,12 @@ from functools import wraps
 
 from graphql import GraphQLError
 
-from core.user.exceptions import InvalidCredentialsError, UserAlreadyExistsError
 
-
-def handle_users_errors(func):
+def require_authentication(func):
     @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except (UserAlreadyExistsError, InvalidCredentialsError) as error:
-            raise GraphQLError(str(error)) from error
+    async def wrapper(*args, info, **kwargs):
+        if not info.context.get("current_user"):
+            raise GraphQLError("Authentication required")
+        return await func(*args, info=info, **kwargs)
 
     return wrapper
