@@ -8,33 +8,26 @@ python-intermediate — учебное FastAPI-приложение с ката�
 - Task queue: нет; планируется Kafka
 
 ## Architecture
-Слои, сверху вниз. Каждый слой обращается только к следующему, снизу вверх обращений нет.
+Код в `src/` — это корень пакетов `products` и `users`, сам он пакетом не является (`__init__.py` в нём нет), поэтому импорты начинаются с имени пакета: `from users.services import UserService`. Пакеты установлены в venv editable-режимом (hatchling, `packages` в `[tool.hatch.build.targets.wheel]`), так что импорт работает из любой директории; новый пакет в `src/` нужно дописать в этот список и выполнить `uv sync`. `src/main.py` собирает приложение, роутеры под префиксом `/v1/api`. Планы задач — в `docs/plans/`.
 
-1. **Endpoints** (`*/views.py`, `*/decorators.py`, `users/dependencies.py`) — роутеры FastAPI, декораторы и зависимости. Разбор запроса, аутентификация, права, формирование ответа. Единственное место, где рождаются `HTTPException`: декораторы `handle_products_errors` / `handle_users_errors` переводят исключения сервисов в коды ответа (нет товара → 404, дубликат → 400, негодный токен → 401), `require_permissions` — 403. Логики нет, вызывают сервис.
-2. **Services** (`*/services.py`) — бизнес-логика и правила. Про HTTP не знает: поднимает свои исключения из `*/exceptions.py` (`ProductNotFoundError`, `UserAlreadyExistsError` и прочие).
-3. **ORM / Data access** (`*/managers.py`) — доступ к хранилищу. Сейчас словари в памяти, менеджеры возвращают объекты или `bool`/`None`, про HTTP не знают. При переезде на SQLAlchemy сюда встанут сессия и запросы, слои выше не меняются.
+Слои, сверху вниз; каждый обращается только к следующему, снизу вверх обращений нет.
+
+1. **Endpoints** (`*/views.py`, `*/decorators.py`, `users/dependencies.py`) — роутеры, декораторы, зависимости: разбор запроса, аутентификация (`get_current_user`), права, ответ. Логики нет, вызывают сервис. Единственное место, где рождаются `HTTPException`: `handle_products_errors` / `handle_users_errors` переводят исключения сервисов в коды (нет товара → 404, дубликат → 400, негодный токен → 401), `require_permissions` — 403.
+2. **Services** (`*/services.py`) — бизнес-логика. Про HTTP не знает, поднимает свои исключения из `*/exceptions.py` (`ProductNotFoundError`, `UserAlreadyExistsError` и прочие).
+3. **ORM / Data access** (`*/managers.py`) — доступ к хранилищу, возвращают объекты или `bool`/`None`, про HTTP не знают. При переезде на SQLAlchemy сюда встанут сессия и запросы, слои выше не меняются.
 4. **Database** — пока `dict` внутри менеджеров-синглтонов (`product_manager`, `user_manager`), состояние живёт до перезапуска процесса. Дальше — PostgreSQL.
 
-Модели (`*/models.py`), исключения (`*/exceptions.py`) и права (`users/permissions.py`) — общие для всех слоёв, зависимостей на слои у них нет.
-
-## Structure
-- `main.py` — сборка приложения, роутеры под префиксом `/v1/api`
-- `products/views.py`, `users/views.py` — эндпоинты
-- `products/services.py`, `users/services.py` — бизнес-логика
-- `products/managers.py`, `users/managers.py` — хранилища
-- `products/exceptions.py`, `users/exceptions.py` — доменные исключения
-- `products/decorators.py` — `handle_products_errors`
-- `users/decorators.py` — `handle_users_errors`, `require_permissions`
-- `products/models.py`, `users/models.py` — модели `Product`, `BaseUser`/`AdminUser`/`RegularUser`
-- `users/permissions.py` — Enum `Permission`
-- `users/dependencies.py` — `get_current_user`
-- `docs/plans/` — планы задач
+Общие для всех слоёв, зависимостей на слои не имеют: модели `*/models.py` (`Product`, `BaseUser`/`AdminUser`/`RegularUser`), исключения `*/exceptions.py`, права `users/permissions.py` (Enum `Permission`).
 
 ## Commands
-- Dev: `uv run fastapi dev`
+- Dev: `docker compose up -d --build` — http://127.0.0.1:8010/docs, hot-reload через монтирование `./src`; логи `docker compose logs -f`, остановка `docker compose down`
 - Test: тестов пока нет
-- Lint: `uv run ruff check .`
-- Format: `uv run ruff format .`
+
+## Verification
+Любая правка кода не закончена, пока не прошла по порядку и без замечаний:
+1. `uv run ruff format .`
+2. `uv run ruff check .`
+3. `uvx pyright`
 
 ## Conventions
 - Pydantic-модели для тел запросов и ответов
