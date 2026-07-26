@@ -42,21 +42,21 @@
 ## Структура
 
 ```
-main.py                — сборка приложения, роутеры под префиксом /v1/api
-products/models.py     — модель Product
-products/managers.py   — ProductManager: хранилище товаров
-products/services.py   — ProductService: логика операций над товарами
-products/exceptions.py — исключения товаров: не найден, уже существует
-products/decorators.py — handle_products_errors: перевод исключений товаров в HTTP-ответы
-products/views.py      — эндпоинты товаров
-users/models.py        — BaseUser, AdminUser, RegularUser
-users/permissions.py   — Permission: перечисление прав
-users/managers.py      — UserManager: хранилище пользователей
-users/services.py      — UserService: регистрация, хеширование пароля, выпуск и проверка JWT
-users/exceptions.py    — исключения пользователей: дубликат, неверные учётные данные, негодный токен
-users/decorators.py    — handle_users_errors и require_permissions
-users/dependencies.py  — get_current_user
-users/views.py         — эндпоинты пользователей
+src/main.py                — сборка приложения, роутеры под префиксом /v1/api
+src/products/models.py     — модель Product
+src/products/managers.py   — ProductManager: хранилище товаров
+src/products/services.py   — ProductService: логика операций над товарами
+src/products/exceptions.py — исключения товаров: не найден, уже существует
+src/products/decorators.py — handle_products_errors: перевод исключений товаров в HTTP-ответы
+src/products/views.py      — эндпоинты товаров
+src/users/models.py        — BaseUser, AdminUser, RegularUser
+src/users/permissions.py   — Permission: перечисление прав
+src/users/managers.py      — UserManager: хранилище пользователей
+src/users/services.py      — UserService: регистрация, хеширование пароля, выпуск и проверка JWT
+src/users/exceptions.py    — исключения пользователей: дубликат, неверные учётные данные, негодный токен
+src/users/decorators.py    — handle_users_errors и require_permissions
+src/users/dependencies.py  — get_current_user
+src/users/views.py         — эндпоинты пользователей
 ```
 
 ## Эндпоинты
