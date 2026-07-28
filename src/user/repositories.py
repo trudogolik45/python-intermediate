@@ -17,7 +17,6 @@ class UserRepository:
                 permissions=[Permission(permission).value for permission in user.permissions],
             )
         )
-        self.session.commit()
 
     def get_by_username(self, username):
         row = self.session.query(User).filter(User.username == username).first()
