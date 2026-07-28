@@ -2,6 +2,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Query
 
+from api.dependencies import get_user_service
 from api.rest.user.decorators import handle_users_errors, require_permissions
 from api.rest.user.dependencies import get_current_user
 from core.permissions import Permission
@@ -18,27 +19,31 @@ async def add_user(
     email: str,
     is_admin: bool,
     permissions: Optional[List[Permission]] = Query(default=None, title="Permissions"),
+    service: UserService = Depends(get_user_service),
 ):
-    UserService.register_user(username, password, email, is_admin, permissions)
+    service.register_user(username, password, email, is_admin, permissions)
     return {"message": f"User {username} added successfully."}
 
 
 @user_router.get("")
 @require_permissions(Permission.VIEW_USER)
-async def get_all_users(current_user=Depends(get_current_user)):
-    return [user.get_info() for user in UserService.get_all_users()]
+async def get_all_users(
+    current_user=Depends(get_current_user),
+    service: UserService = Depends(get_user_service),
+):
+    return [user.get_info() for user in service.get_all_users()]
 
 
 @user_router.get("/login")
 @handle_users_errors
-async def login(username: str, password: str):
-    return UserService.login(username, password)
+async def login(username: str, password: str, service: UserService = Depends(get_user_service)):
+    return service.login(username, password)
 
 
 @user_router.get("/refresh")
 @handle_users_errors
-async def refresh_token(token: str):
-    return UserService.refresh_access_token(token)
+async def refresh_token(token: str, service: UserService = Depends(get_user_service)):
+    return service.refresh_access_token(token)
 
 
 @user_router.get("/me")

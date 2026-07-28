@@ -4,7 +4,7 @@ python-intermediate — учебное FastAPI-приложение с ката�
 ## Stack
 - Python 3.10, FastAPI 0.140, Pydantic v2
 - API: REST на `/v1/api` и GraphQL на `/v1/gql` (strawberry-graphql 0.323, `GraphQLRouter`)
-- Хранение: PostgreSQL + SQLAlchemy 2.0 (синхронный, psycopg2), схема — миграциями Alembic; менеджеры пока держат данные в словарях в памяти. Загруженные файлы — на диске в `media/` (`FileManager`), наружу раздаются `StaticFiles` по `/media`
+- Хранение: PostgreSQL + SQLAlchemy 2.0 (синхронный, psycopg2), схема — миграциями Alembic; пользователи лежат в БД, товары пока в словаре в памяти. Загруженные файлы — на диске в `media/` (`FileManager`), наружу раздаются `StaticFiles` по `/media`
 - Auth: JWT (python-jose, HS256) — пара access/refresh, тип токена в payload полем `type`; пароли через bcrypt. Права — `Permission` (строковый Enum), проверка декоратором `require_permissions`
 - Task queue: нет; планируется Kafka
 
@@ -15,10 +15,10 @@ python-intermediate — учебное FastAPI-приложение с ката�
 
 1. **API / транспорт** (`api/`) — всё, что знает про протокол. `api/rest/{product,user}/` — роутеры (`views.py`), декораторы, зависимости: разбор запроса, аутентификация (`get_current_user`), права, ответ. Логики нет, вызывают сервис. Единственное место, где рождаются `HTTPException`: `handle_products_errors` / `handle_users_errors` переводят исключения сервисов в коды (нет товара → 404, дубликат → 400, негодный токен → 401), `require_permissions` — 403. `api/graphql/` — второй транспорт поверх тех же сервисов, разложен по доменам как `api/rest/`; доменные исключения переводит в `GraphQLError`. Текущего пользователя кладёт в контекст схемы `get_context` (`dependencies.py`), доступ к резолверу закрывает декоратор `require_permissions` (`api/graphql/decorators.py`) — он же отвечает и за аутентификацию, потому что `get_current_user` здесь возвращает `None` вместо исключения. Приём файлов включается флагом `multipart_uploads_enabled` у `GraphQLRouter`.
 2. **Core / бизнес-правила** (`core/`) — `core/{file,product,user}/` с сущностями (`entities.py`), бизнес-логикой (`services.py`) и доменными исключениями (`exceptions.py`), плюс общий для доменов `core/permissions.py` (Enum `Permission`). Про HTTP не знает и не должен знать: смена или добавление типа API его не касается.
-3. **ORM / Data access** (`file/managers.py`, `product/managers.py`, `user/managers.py`) — доступ к хранилищу, возвращают объекты или `bool`/`None`, про HTTP не знают. Тут же ORM-модели (`models.py` в тех же пакетах); менеджеры к ним пока не обращаются, сессия придёт сюда же.
-4. **Database** — PostgreSQL, подключение и настройки в `infrastructure/`, `DATABASE_URL` из окружения (в контейнере — из compose, на хосте — из `.env`). Миграции Alembic лежат в корне, а не в `src/`, потому что запускаются с хоста. Менеджеры при этом всё ещё хранят `dict` в памяти, состояние живёт до перезапуска процесса. Файлы — отдельно: `file_manager` пишет их на диск в `MEDIA_ROOT`.
+3. **ORM / Data access** (`user/repositories.py`, `file/managers.py`, `product/managers.py`) — доступ к хранилищу, возвращают объекты или `bool`/`None`, про HTTP не знают. Тут же ORM-модели (`models.py` в тех же пакетах). `UserRepository` принимает сессию в `__init__` и на границе конвертирует строки таблицы в доменные сущности, чтобы наверх не утекал SQLAlchemy; `product`/`file` до сих пор на менеджерах.
+4. **Database** — PostgreSQL, подключение и настройки в `infrastructure/`, `DATABASE_URL` из окружения (в контейнере — из compose, на хосте — из `.env`). Сессия создаётся на запрос генератором `get_session` (`infrastructure/database.py`), сервис собирается зависимостью `get_user_service` (`api/dependencies.py`, общая для REST и GraphQL). Миграции Alembic лежат в корне, а не в `src/`, потому что запускаются с хоста. Товары при этом всё ещё в `dict` в памяти, их состояние живёт до перезапуска процесса. Файлы — отдельно: `file_manager` пишет их на диск в `MEDIA_ROOT`.
 
-Известные упрощения в `core`, сознательные: сервисы импортируют менеджеры напрямую (зависимость ядра на инфраструктуру не развёрнута через протокол репозитория), `core/product/entities.py` — Pydantic-модель, `core/user/services.py` тянет bcrypt и jose.
+Известные упрощения в `core`, сознательные: сервисы импортируют репозитории и менеджеры напрямую (зависимость ядра на инфраструктуру не развёрнута через протокол), `core/product/entities.py` — Pydantic-модель, `core/user/services.py` тянет bcrypt и jose. Работа с БД синхронная внутри `async`-обработчиков.
 
 ## Commands
 - Dev: `docker compose up -d --build` — REST-доки http://127.0.0.1:8010/docs, GraphiQL http://127.0.0.1:8010/v1/gql, hot-reload через монтирование `./src`; логи `docker compose logs -f`, остановка `docker compose down`. Правка зависимостей требует пересборки образа — `./src` смонтирован, а пакеты вшиты внутрь
@@ -37,7 +37,7 @@ python-intermediate — учебное FastAPI-приложение с ката�
 - Новое право — значение в `Permission`, не строка в коде
 - Обработка ошибок — декоратором над обработчиком, не `try/except` в теле; декораторы пишутся с `functools.wraps`, иначе FastAPI не разберёт сигнатуру
 - Обработчики async
-- Зависимости FastAPI для всего, что берётся из запроса: токен, текущий пользователь, в будущем сессия БД
+- Зависимости FastAPI для всего, что берётся из запроса: токен, текущий пользователь, сессия БД и собранный поверх неё сервис
 
 ## Don't
 - Не класть бизнес-логику в обработчики — она в сервисах

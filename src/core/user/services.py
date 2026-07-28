@@ -5,7 +5,7 @@ from jose import JWTError, jwt
 
 from core.user.entities import AdminUser, RegularUser
 from core.user.exceptions import InvalidCredentialsError, InvalidTokenError, UserAlreadyExistsError
-from user.managers import user_manager
+from user.repositories import UserRepository
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 1
 REFRESH_TOKEN_EXPIRE_MINUTES = 10
@@ -14,8 +14,19 @@ ALGORITHM = "HS256"
 
 
 class UserService:
-    @staticmethod
-    def register_user(username, password, email, is_admin, permissions):
+    def __init__(self, repository: UserRepository):
+        self.repository = repository
+
+    @classmethod
+    def with_session(cls, session):
+        return cls(UserRepository(session))
+
+    def register_user(self, username, password, email, is_admin, permissions):
+        if self.repository.get_by_username(username):
+            raise UserAlreadyExistsError(username)
+        if self.repository.get_by_email(email):
+            raise UserAlreadyExistsError(email)
+
         hashed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
         if is_admin:
             user = AdminUser(username=username, password=hashed_password, email=email)
@@ -26,17 +37,14 @@ class UserService:
                 email=email,
                 permissions=permissions,
             )
-        if not user_manager.add_user(user):
-            raise UserAlreadyExistsError(username)
+        self.repository.add(user)
 
-    @staticmethod
-    def get_all_users():
-        return user_manager.get_all_users()
+    def get_all_users(self):
+        return self.repository.get_all()
 
-    @classmethod
-    def get_current_user(cls, token):
-        username = cls.verify_token(token, "access")
-        user = user_manager.get_user(username)
+    def get_current_user(self, token):
+        username = self.verify_token(token, "access")
+        user = self.repository.get_by_username(username)
         if not user:
             raise InvalidTokenError("User not found")
         return user
@@ -45,24 +53,22 @@ class UserService:
     def verify_password(plain_password, hashed_password):
         return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
 
-    @classmethod
-    def authenticate_user(cls, username, password):
-        user = user_manager.get_user(username)
-        if not user or not cls.verify_password(password, user.password):
+    def authenticate_user(self, username, password):
+        user = self.repository.get_by_username(username)
+        if not user or not self.verify_password(password, user.password):
             return None
         return user
 
-    @classmethod
-    def login(cls, username, password):
-        user = cls.authenticate_user(username, password)
+    def login(self, username, password):
+        user = self.authenticate_user(username, password)
         if not user:
             raise InvalidCredentialsError()
 
-        access_token = cls.create_token(
+        access_token = self.create_token(
             data={"sub": user.username, "type": "access"},
             expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
         )
-        refresh_token = cls.create_token(
+        refresh_token = self.create_token(
             data={"sub": user.username, "type": "refresh"},
             expires_delta=timedelta(minutes=REFRESH_TOKEN_EXPIRE_MINUTES),
         )
