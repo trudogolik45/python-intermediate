@@ -13,7 +13,7 @@ async def get_current_user(
     if not token:
         return None
     try:
-        return service.get_current_user(token)
+        return await service.get_current_user(token)
     except InvalidTokenError:
         return None
 

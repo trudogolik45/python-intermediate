@@ -11,4 +11,4 @@ async def get_current_user(
     token: str = Depends(APIKeyHeader(name="Authorization")),
     service: UserService = Depends(get_user_service),
 ):
-    return service.get_current_user(token)
+    return await service.get_current_user(token)

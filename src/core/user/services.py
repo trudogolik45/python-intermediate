@@ -25,7 +25,7 @@ class UserService:
     def with_session(cls, session):
         return cls(UserRepository(session), UnitOfWork(session))
 
-    def register_user(self, username, password, email, is_admin, permissions):
+    async def register_user(self, username, password, email, is_admin, permissions):
         hashed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
         if is_admin:
             user = AdminUser(username=username, password=hashed_password, email=email)
@@ -38,21 +38,21 @@ class UserService:
             )
 
         try:
-            with self.uow:
-                if self.repository.get_by_username(username):
+            async with self.uow:
+                if await self.repository.get_by_username(username):
                     raise UserAlreadyExistsError(username)
-                if self.repository.get_by_email(email):
+                if await self.repository.get_by_email(email):
                     raise UserAlreadyExistsError(email)
                 self.repository.add(user)
         except UnitOfWorkError as error:
             raise ServiceError("Failed to register user") from error
 
-    def get_all_users(self):
-        return self.repository.get_all()
+    async def get_all_users(self):
+        return await self.repository.get_all()
 
-    def get_current_user(self, token):
+    async def get_current_user(self, token):
         username = self.verify_token(token, "access")
-        user = self.repository.get_by_username(username)
+        user = await self.repository.get_by_username(username)
         if not user:
             raise InvalidTokenError("User not found")
         return user
@@ -61,14 +61,14 @@ class UserService:
     def verify_password(plain_password, hashed_password):
         return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
 
-    def authenticate_user(self, username, password):
-        user = self.repository.get_by_username(username)
+    async def authenticate_user(self, username, password):
+        user = await self.repository.get_by_username(username)
         if not user or not self.verify_password(password, user.password):
             return None
         return user
 
-    def login(self, username, password):
-        user = self.authenticate_user(username, password)
+    async def login(self, username, password):
+        user = await self.authenticate_user(username, password)
         if not user:
             raise InvalidCredentialsError()
 

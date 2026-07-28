@@ -6,11 +6,12 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "alembic>=1.18.5",
+    "asyncpg>=0.31.0",
     "bcrypt>=5.0.0",
     "fastapi[standard]>=0.140.0",
     "psycopg2-binary>=2.9.12",
     "python-jose>=3.5.0",
-    "sqlalchemy>=2.0.51",
+    "sqlalchemy[asyncio]>=2.0.51",
     "strawberry-graphql[fastapi]>=0.323.2",
 ]
 
@@ -29,3 +30,15 @@ src = ["src"]
 venvPath = "."
 venv = ".venv"
 extraPaths = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+]

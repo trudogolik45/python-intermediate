@@ -1,10 +1,13 @@
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from core.permissions import Permission
 from core.user.entities import AdminUser, BaseUser, RegularUser
 from user.models import User
 
 
 class UserRepository:
-    def __init__(self, session):
+    def __init__(self, session: AsyncSession):
         self.session = session
 
     def add(self, user: BaseUser):
@@ -18,20 +21,23 @@ class UserRepository:
             )
         )
 
-    def get_by_username(self, username):
-        row = self.session.query(User).filter(User.username == username).first()
+    async def get_by_username(self, username):
+        result = await self.session.execute(select(User).where(User.username == username))
+        row = result.scalars().first()
         if not row:
             return None
         return self._to_entity(row)
 
-    def get_by_email(self, email):
-        row = self.session.query(User).filter(User.email == email).first()
+    async def get_by_email(self, email):
+        result = await self.session.execute(select(User).where(User.email == email))
+        row = result.scalars().first()
         if not row:
             return None
         return self._to_entity(row)
 
-    def get_all(self):
-        return [self._to_entity(row) for row in self.session.query(User).all()]
+    async def get_all(self):
+        result = await self.session.execute(select(User))
+        return [self._to_entity(row) for row in result.scalars().all()]
 
     @staticmethod
     def _to_entity(row: User) -> BaseUser:

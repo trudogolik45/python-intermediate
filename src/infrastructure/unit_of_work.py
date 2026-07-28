@@ -1,28 +1,28 @@
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from infrastructure.exceptions import UnitOfWorkError
 
 
 class UnitOfWork:
-    def __init__(self, session: Session):
+    def __init__(self, session: AsyncSession):
         self.session = session
 
-    def __enter__(self):
+    async def __aenter__(self):
         return self
 
-    def __exit__(self, exc_type, exc, traceback):
+    async def __aexit__(self, exc_type, exc, traceback):
         if exc_type is None:
-            self.commit()
+            await self.commit()
             return False
-        self.session.rollback()
+        await self.session.rollback()
         if issubclass(exc_type, SQLAlchemyError):
             raise UnitOfWorkError() from exc
         return False
 
-    def commit(self):
+    async def commit(self):
         try:
-            self.session.commit()
+            await self.session.commit()
         except SQLAlchemyError as error:
-            self.session.rollback()
+            await self.session.rollback()
             raise UnitOfWorkError() from error

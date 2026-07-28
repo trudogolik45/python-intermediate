@@ -2,13 +2,15 @@ services:
   web_app:
     build:
       context: .
+      target: base
     container_name: fastapi_app
     command: fastapi dev src/main.py --host 0.0.0.0 --port 8000
     depends_on:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql+psycopg2://postgres:password@db:5432/mydatabase
+      ASYNC_DATABASE_URL: postgresql+asyncpg://postgres:password@db:5432/mydatabase
+      SYNC_DATABASE_URL: postgresql+psycopg2://postgres:password@db:5432/mydatabase
     ports:
       - "8010:8000"
     volumes:

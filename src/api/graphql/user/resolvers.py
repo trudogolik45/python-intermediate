@@ -13,7 +13,7 @@ class UserQuery:
     @require_permissions(Permission.VIEW_USER)
     async def all_users(self, info: strawberry.Info, limit: int = DEFAULT_LIMIT, offset: int = 0) -> Page[User]:
         service = info.context["user_service"]
-        users = [User(username=user.username, email=user.email) for user in service.get_all_users()]
+        users = [User(username=user.username, email=user.email) for user in await service.get_all_users()]
         return paginate(users, limit, offset)
 
 
@@ -23,11 +23,11 @@ class UserMutation:
     @handle_users_errors
     async def register(self, info: strawberry.Info, username: str, password: str, email: str) -> User:
         service = info.context["user_service"]
-        service.register_user(username, password, email, is_admin=False, permissions=[])
+        await service.register_user(username, password, email, is_admin=False, permissions=[])
         return User(username=username, email=email)
 
     @strawberry.mutation
     @handle_users_errors
     async def login(self, info: strawberry.Info, username: str, password: str) -> Token:
         service = info.context["user_service"]
-        return Token(**service.login(username, password))
+        return Token(**await service.login(username, password))

@@ -1,0 +1,35 @@
+name: python-intermediate-test
+
+services:
+  test_app:
+    build:
+      context: .
+      target: test
+    container_name: fastapi_test_app
+    command: sleep infinity
+    depends_on:
+      test_db:
+        condition: service_healthy
+    environment:
+      ASYNC_DATABASE_URL: postgresql+asyncpg://postgres:password@test_db:5432/testdatabase
+      SYNC_DATABASE_URL: postgresql+psycopg2://postgres:password@test_db:5432/testdatabase
+      TEST_DATABASE_URL: postgresql+asyncpg://postgres:password@test_db:5432/testdatabase
+    volumes:
+      - ./src:/app/src
+      - ./tests:/app/tests
+      - ./pyproject.toml:/app/pyproject.toml
+
+  test_db:
+    image: postgres:16
+    container_name: postgres_test_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: testdatabase
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d testdatabase"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
