@@ -19,7 +19,7 @@ FastAPI-приложение: REST на `/v1/api`, GraphQL на `/v1/gql`, Postg
 uv sync
 ```
 
-`.env` в корне драйверу не нужен: он передаёт `SYNC_DATABASE_URL` / `ASYNC_DATABASE_URL` явно. Для ручных `uv run alembic ...` `.env` нужен, и в нём должны быть **обе** переменные (см. Грабли).
+`.env` в корне драйверу не нужен: `DATABASE_URL` он передаёт явно. Для ручных `uv run alembic ...` `.env` нужен — там та же одна переменная.
 
 ## Запуск (путь агента)
 
@@ -60,7 +60,7 @@ curl -s -H "Authorization: $TOKEN" http://127.0.0.1:8010/v1/api/users/me
 Для правок в сервисе, репозитории или UoW полное приложение не нужно — сервис собирается поверх сессии одной строкой. Запись реально коммитится через `UnitOfWork`, поэтому нужен поднятый Postgres (`driver.py up`):
 
 ```bash
-ASYNC_DATABASE_URL="postgresql+asyncpg://postgres:password@localhost:5432/mydatabase" uv run python -c '
+DATABASE_URL="postgresql+asyncpg://postgres:password@localhost:5432/mydatabase" uv run python -c '
 import asyncio, uuid
 from core.user.services import UserService
 from infrastructure.database import SessionLocal
@@ -96,7 +96,6 @@ make test
 - **Access-токен живёт 60 секунд** (`ACCESS_TOKEN_EXPIRE_MINUTES = 1` в `src/core/user/services.py`). Проверено: через 61 секунду тот же токен отдаёт 401. Скрипт длиннее минуты обязан перелогиниваться — драйвер логинится в начале каждой секции.
 - **Логин — это `GET` с query-параметрами**, не POST с телом: `GET /v1/api/users/login?username=...&password=...`. Регистрация при этом POST с JSON-телом.
 - **Без миграций приложение стартует, а запись падает 500.** `/docs` открывается, но `POST /v1/api/users` отдаёт `{"detail":"Failed to register user"}` — отсутствующая таблица заворачивается в `UnitOfWorkError` → `ServiceError`, и настоящая причина видна только в `driver.py logs`. Первое, что стоит проверить при 500 на запись.
-- **Alembic с хоста требует обе переменные окружения.** Использует он `SYNC_DATABASE_URL`, но `migrations/env.py` импортирует `Base` из `infrastructure/database.py`, а тот на импорте создаёт async-движок — с пустым `ASYNC_DATABASE_URL` падает `ArgumentError: Could not parse SQLAlchemy URL`, не сообщая, какая из переменных пустая.
 - **Правка зависимостей требует пересборки образа.** `./src` смонтирован и hot-reload работает, но пакеты вшиты в образ: `docker compose up -d` без `--build` после `uv add` даёт `ModuleNotFoundError` в логе, а контейнер молча остаётся не-running.
 - **Товары живут в памяти процесса.** Проверено: после `docker compose restart web_app` товар отдаёт 404, а пользователь по тому же токену — 200. Не считать пропажу товара багом после рестарта.
 - **Загруженные файлы переживают всё.** `media/` смонтирован с хоста, повторная загрузка того же имени даёт GraphQL-ошибку `File ... already exists`. Драйвер поэтому генерирует имена с суффиксом.
@@ -110,7 +109,7 @@ make test
 |---|---|
 | `{"detail":"Failed to register user"}`, HTTP 500 | Схема не накатана. `uv run python .claude/skills/run-python-intermediate/driver.py up` (в нём есть `alembic upgrade head`) |
 | `ModuleNotFoundError: No module named 'asyncpg'` в логе, контейнер не в `running` | Образ старее зависимостей. `make build` или `driver.py up` — оба с `--build` |
-| `sqlalchemy.exc.ArgumentError: Could not parse SQLAlchemy URL from given URL string` при `alembic` | В `.env` нет `SYNC_DATABASE_URL` и/или `ASYNC_DATABASE_URL`. Обходной путь без `.env` — передать обе в окружении команды |
+| `sqlalchemy.exc.ArgumentError: Could not parse SQLAlchemy URL from given URL string` при `alembic` | В `.env` нет `DATABASE_URL`. Обходной путь без `.env` — передать её в окружении команды |
 | 401 на любой запрос с токеном | Либо префикс `Bearer`, либо токен старше минуты. Взять свежий: `driver.py token` |
 | 403 там, где ждёшь 200 | У пользователя нет права. Права выдаются при регистрации полем `permissions`, админ (`is_admin: true`) получает все |
 | `driver.py smoke` пишет «сначала подними стек» | Приложение не отвечает на 8010. `driver.py logs` покажет, упало ли оно на старте |

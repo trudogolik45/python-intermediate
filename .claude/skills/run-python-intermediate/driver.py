@@ -20,12 +20,10 @@ BASE_URL = os.environ.get("DRIVER_BASE_URL", "http://127.0.0.1:8010")
 REST = f"{BASE_URL}/v1/api"
 GQL = f"{BASE_URL}/v1/gql"
 
-# Драйвер не полагается на .env — переменные передаются явно, чтобы работать
+# Драйвер не полагается на .env — переменная передаётся явно, чтобы работать
 # на машине, где .env ещё не заполнен.
 HOST_DB_ENV = {
-    "SYNC_DATABASE_URL": "postgresql+psycopg2://postgres:password@localhost:5432/mydatabase",
-    "ASYNC_DATABASE_URL": "postgresql+asyncpg://postgres:password@localhost:5432/mydatabase",
-    "TEST_DATABASE_URL": "postgresql+asyncpg://postgres:password@localhost:5432/testdatabase",
+    "DATABASE_URL": "postgresql+asyncpg://postgres:password@localhost:5432/mydatabase",
 }
 
 passed = 0

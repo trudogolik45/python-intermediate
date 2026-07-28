@@ -3,7 +3,8 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from infrastructure.config import settings
-from infrastructure.database import Base, get_session
+from infrastructure.base import Base
+from infrastructure.database import get_session
 from main import app
 from user import models  # noqa: F401 — импорт регистрирует User в Base.metadata
 
