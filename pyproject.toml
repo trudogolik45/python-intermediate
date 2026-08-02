@@ -43,6 +43,7 @@ infer-with-first-use = false
 
 [dependency-groups]
 dev = [
+    "pyrefly>=1.2.0",
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
     "ruff>=0.16.1",

@@ -29,7 +29,7 @@
 - После каждого изменения запускай по порядку:
   1. `uv run ruff format .`
   2. `uv run ruff check .`
-  3. `uvx pyrefly check`
+  3. `uv run pyrefly check`
   4. `make test`
 
 ## Conventions
