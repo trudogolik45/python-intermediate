@@ -1,4 +1,3 @@
-import bcrypt
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import select
@@ -39,18 +38,17 @@ async def client(db_session):
 
 
 @pytest.fixture
-def create_user(db_session):
+def create_user(client, read_user):
+    """Регистрирует пользователя тем же эндпоинтом, что и приложение: хеширование пароля не дублируется."""
+
     async def factory(username="test_user", email="test@example.com", password="secret", is_admin=False):
-        user = User(
-            username=username,
-            email=email,
-            password=bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8"),
-            is_admin=is_admin,
-            permissions=[],
+        response = await client.post(
+            "/v1/api/users",
+            json={"username": username, "password": password, "email": email, "is_admin": is_admin},
         )
-        db_session.add(user)
-        await db_session.commit()
-        await db_session.refresh(user)
+        response.raise_for_status()
+        user = await read_user(username)
+        assert user is not None, f"пользователь {username} не сохранился в БД после регистрации"
         return user
 
     return factory
