@@ -169,11 +169,11 @@ def cmd_smoke():
 
         print("\n[5] GraphQL")
         gql_user = f"gql_{tag}"
-        response = gql(
-            client,
-            'mutation { register(username: "%s", password: "%s", email: "%s@example.com") { username email } }'
-            % (gql_user, password, gql_user),
+        register_mutation = (
+            f'mutation {{ register(username: "{gql_user}", password: "{password}", '
+            f'email: "{gql_user}@example.com") {{ username email }} }}'
         )
+        response = gql(client, register_mutation)
         check(
             "мутация register",
             response.json().get("data", {}).get("register", {}).get("username") == gql_user,
