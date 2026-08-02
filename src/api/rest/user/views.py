@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends
 
 from api.dependencies import get_user_service
-from api.rest.user.decorators import handle_users_errors, require_permissions
+from api.rest.errors import handle_domain_errors
+from api.rest.user.decorators import require_permissions
 from api.rest.user.dependencies import get_current_user
 from api.rest.user.models import CurrentUser, PatchUser, UserCreate, UserLogin
 from core.permissions import Permission
@@ -11,7 +12,7 @@ user_router = APIRouter(prefix="/users", tags=["users"])
 
 
 @user_router.post("")
-@handle_users_errors
+@handle_domain_errors
 async def add_user(payload: UserCreate, service: UserService = Depends(get_user_service)):
     await service.register_user(
         payload.username,
@@ -34,7 +35,7 @@ async def get_all_users(
 
 @user_router.patch("/{user_id}")
 @require_permissions(Permission.UPDATE_USER)
-@handle_users_errors
+@handle_domain_errors
 async def patch_user(
     user_id: int,
     payload: PatchUser,
@@ -46,13 +47,13 @@ async def patch_user(
 
 
 @user_router.post("/login")
-@handle_users_errors
+@handle_domain_errors
 async def login(payload: UserLogin, service: UserService = Depends(get_user_service)):
     return await service.login(payload.username, payload.password)
 
 
 @user_router.get("/refresh")
-@handle_users_errors
+@handle_domain_errors
 async def refresh_token(token: str, service: UserService = Depends(get_user_service)):
     return service.refresh_access_token(token)
 

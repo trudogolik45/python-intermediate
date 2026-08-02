@@ -131,6 +131,42 @@ async def test_patch_user_revokes_admin(client, create_user, auth_headers, read_
     assert stored.is_admin is False
 
 
+async def test_demoted_admin_loses_permissions(client, create_user, auth_headers, read_user):
+    target = await create_user(username="target", email="target@example.com", is_admin=True)
+    admin = await create_user(username="admin", email="admin@example.com", is_admin=True)
+
+    await client.patch(
+        f"/v1/api/users/{target.id}",
+        json={"is_admin": False},
+        headers=await auth_headers(admin),
+    )
+
+    stored = await read_user("target")
+    assert stored.permissions == []
+
+    demoted = await auth_headers(target)
+    assert (await client.get("/v1/api/users", headers=demoted)).status_code == HTTPStatus.FORBIDDEN
+    regain = await client.patch(f"/v1/api/users/{target.id}", json={"is_admin": True}, headers=demoted)
+    assert regain.status_code == HTTPStatus.FORBIDDEN
+
+
+async def test_promoted_user_gains_permissions(client, create_user, auth_headers, read_user):
+    target = await create_user(username="target", email="target@example.com")
+    admin = await create_user(username="admin", email="admin@example.com", is_admin=True)
+
+    await client.patch(
+        f"/v1/api/users/{target.id}",
+        json={"is_admin": True},
+        headers=await auth_headers(admin),
+    )
+
+    stored = await read_user("target")
+    assert "view_user" in stored.permissions
+
+    promoted = await auth_headers(target)
+    assert (await client.get("/v1/api/users", headers=promoted)).status_code == HTTPStatus.OK
+
+
 async def test_patch_user_without_permission(client, create_user, auth_headers, read_user):
     user = await create_user(username="regular", email="regular@example.com")
 

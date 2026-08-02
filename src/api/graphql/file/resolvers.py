@@ -5,7 +5,7 @@ from fastapi import UploadFile
 from strawberry.file_uploads import Upload
 
 from api.graphql.decorators import require_permissions
-from api.graphql.file.decorators import handle_files_errors
+from api.graphql.errors import handle_domain_errors
 from api.graphql.file.types import UploadedFile, to_uploaded_file
 from api.graphql.pagination import DEFAULT_LIMIT, Page, paginate
 from core.file.services import FileService
@@ -25,7 +25,7 @@ class FileQuery:
 class FileMutation:
     @strawberry.mutation
     @require_permissions(Permission.UPLOAD_FILE)
-    @handle_files_errors
+    @handle_domain_errors
     async def upload_file(self, info: strawberry.Info, file: Upload) -> UploadedFile:
         upload = cast(UploadFile, file)
         content = await upload.read()

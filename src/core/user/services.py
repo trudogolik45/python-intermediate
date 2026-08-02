@@ -4,7 +4,7 @@ import bcrypt
 from jose import JWTError, jwt
 
 from core.exceptions import ServiceError
-from core.user.entities import AdminUser, RegularUser
+from core.user.entities import User, permissions_for
 from core.user.exceptions import (
     InvalidCredentialsError,
     InvalidTokenError,
@@ -32,15 +32,13 @@ class UserService:
 
     async def register_user(self, username, password, email, is_admin, permissions):
         hashed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
-        if is_admin:
-            user = AdminUser(username=username, password=hashed_password, email=email)
-        else:
-            user = RegularUser(
-                username=username,
-                password=hashed_password,
-                email=email,
-                permissions=permissions,
-            )
+        user = User(
+            username=username,
+            password=hashed_password,
+            email=email,
+            is_admin=is_admin,
+            permissions=permissions,
+        )
 
         try:
             async with self.uow:
@@ -58,7 +56,7 @@ class UserService:
     async def patch_user(self, user_id, is_admin):
         try:
             async with self.uow:
-                user = await self.repository.update(user_id, is_admin)
+                user = await self.repository.update(user_id, is_admin, permissions_for(is_admin, []))
                 if not user:
                     raise UserNotFoundError(user_id)
                 return user
