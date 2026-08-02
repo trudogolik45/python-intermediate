@@ -1,11 +1,7 @@
 from http import HTTPStatus
 
-from sqlalchemy import select
 
-from user.models import User
-
-
-async def test_register_user(client, db_session):
+async def test_register_user(client, read_user):
     response = await client.post(
         "/v1/api/users",
         json={"username": "test_user", "password": "secret", "email": "test@example.com"},
@@ -13,9 +9,7 @@ async def test_register_user(client, db_session):
 
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {"message": "User test_user added successfully."}
-
-    result = await db_session.execute(select(User).where(User.username == "test_user"))
-    assert result.scalars().first() is not None
+    assert await read_user("test_user") is not None
 
 
 async def test_register_user_already_exists(client, create_user):
@@ -58,7 +52,7 @@ async def test_login_unknown_user(client):
 async def test_get_all_users_as_admin(client, create_user, auth_headers):
     admin = await create_user(username="admin", email="admin@example.com", is_admin=True)
 
-    response = await client.get("/v1/api/users", headers=auth_headers(admin))
+    response = await client.get("/v1/api/users", headers=await auth_headers(admin))
 
     assert response.status_code == HTTPStatus.OK
     body = response.json()
@@ -71,7 +65,7 @@ async def test_get_all_users_as_admin(client, create_user, auth_headers):
 async def test_get_all_users_without_permission(client, create_user, auth_headers):
     user = await create_user(username="regular", email="regular@example.com")
 
-    response = await client.get("/v1/api/users", headers=auth_headers(user))
+    response = await client.get("/v1/api/users", headers=await auth_headers(user))
 
     assert response.status_code == HTTPStatus.FORBIDDEN
     assert response.json()["detail"] == "Not enough permissions"
@@ -86,7 +80,7 @@ async def test_get_all_users_without_token(client):
 async def test_me(client, create_user, auth_headers):
     user = await create_user(username="regular", email="regular@example.com")
 
-    response = await client.get("/v1/api/users/me", headers=auth_headers(user))
+    response = await client.get("/v1/api/users/me", headers=await auth_headers(user))
 
     assert response.status_code == HTTPStatus.OK
     body = response.json()
@@ -103,36 +97,53 @@ async def test_me_without_token(client):
     assert response.status_code == HTTPStatus.UNAUTHORIZED
 
 
-async def test_patch_user_as_admin(client, db_session, create_user, auth_headers):
+async def test_patch_user_grants_admin(client, create_user, auth_headers, read_user):
     target = await create_user(username="target", email="target@example.com")
     admin = await create_user(username="admin", email="admin@example.com", is_admin=True)
 
     response = await client.patch(
         f"/v1/api/users/{target.id}",
         json={"is_admin": True},
-        headers=auth_headers(admin),
+        headers=await auth_headers(admin),
     )
 
     assert response.status_code == HTTPStatus.OK
     assert response.json()["is_admin"] is True
 
-    await db_session.refresh(target)
-    assert target.is_admin is True
+    stored = await read_user("target")
+    assert stored.is_admin is True
 
 
-async def test_patch_user_without_permission(client, db_session, create_user, auth_headers):
+async def test_patch_user_revokes_admin(client, create_user, auth_headers, read_user):
+    target = await create_user(username="target", email="target@example.com", is_admin=True)
+    admin = await create_user(username="admin", email="admin@example.com", is_admin=True)
+
+    response = await client.patch(
+        f"/v1/api/users/{target.id}",
+        json={"is_admin": False},
+        headers=await auth_headers(admin),
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.json()["is_admin"] is False
+
+    stored = await read_user("target")
+    assert stored.is_admin is False
+
+
+async def test_patch_user_without_permission(client, create_user, auth_headers, read_user):
     user = await create_user(username="regular", email="regular@example.com")
 
     response = await client.patch(
         f"/v1/api/users/{user.id}",
         json={"is_admin": True},
-        headers=auth_headers(user),
+        headers=await auth_headers(user),
     )
 
     assert response.status_code == HTTPStatus.FORBIDDEN
 
-    await db_session.refresh(user)
-    assert user.is_admin is False
+    stored = await read_user("regular")
+    assert stored.is_admin is False
 
 
 async def test_patch_user_without_token(client, create_user):
@@ -146,7 +157,7 @@ async def test_patch_user_without_token(client, create_user):
 async def test_patch_unknown_user(client, create_user, auth_headers):
     admin = await create_user(username="admin", email="admin@example.com", is_admin=True)
 
-    response = await client.patch("/v1/api/users/999", json={"is_admin": True}, headers=auth_headers(admin))
+    response = await client.patch("/v1/api/users/999", json={"is_admin": True}, headers=await auth_headers(admin))
 
     assert response.status_code == HTTPStatus.NOT_FOUND
     assert response.json()["detail"] == "User 999 not found"

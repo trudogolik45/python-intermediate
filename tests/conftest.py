@@ -1,13 +1,10 @@
-from datetime import timedelta
-
 import bcrypt
 import pytest
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
-from core.permissions import Permission
-from core.user.services import ACCESS_TOKEN_EXPIRE_MINUTES, UserService
 from infrastructure.base import Base
 from infrastructure.config import settings
 from infrastructure.database import get_session
@@ -43,19 +40,13 @@ async def client(db_session):
 
 @pytest.fixture
 def create_user(db_session):
-    async def factory(
-        username="test_user",
-        email="test@example.com",
-        password="secret",
-        is_admin=False,
-        permissions: list[Permission] | None = None,
-    ):
+    async def factory(username="test_user", email="test@example.com", password="secret", is_admin=False):
         user = User(
             username=username,
             email=email,
             password=bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8"),
             is_admin=is_admin,
-            permissions=[permission.value for permission in permissions or []],
+            permissions=[],
         )
         db_session.add(user)
         await db_session.commit()
@@ -66,12 +57,24 @@ def create_user(db_session):
 
 
 @pytest.fixture
-def auth_headers():
-    def factory(user):
-        token = UserService.create_token(
-            data={"sub": user.username, "type": "access"},
-            expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+def auth_headers(client):
+    async def factory(user, password="secret"):
+        response = await client.post(
+            "/v1/api/users/login",
+            json={"username": user.username, "password": password},
         )
-        return {"Authorization": token}
+        return {"Authorization": response.json()["access_token"]}
+
+    return factory
+
+
+@pytest.fixture
+def read_user():
+    """Читает пользователя отдельной сессией: незакоммиченное приложением сюда не попадёт."""
+
+    async def factory(username):
+        async with TestSessionLocal() as session:
+            result = await session.execute(select(User).where(User.username == username))
+            return result.scalars().first()
 
     return factory

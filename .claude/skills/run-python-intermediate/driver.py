@@ -95,8 +95,7 @@ def register(client, username, password, email, is_admin=False, permissions=None
 
 
 def login(client, username, password):
-    """Логин — GET с query-параметрами, не POST с телом."""
-    return client.get(f"{REST}/users/login", params={"username": username, "password": password})
+    return client.post(f"{REST}/users/login", json={"username": username, "password": password})
 
 
 def auth(token):
@@ -139,7 +138,7 @@ def cmd_smoke():
         regular_token = login(client, regular, password).json()["access_token"]
 
         response = client.get(f"{REST}/users/me", headers=auth(admin_token))
-        check("/users/me узнаёт админа", response.json().get("message") == f"Hello, {admin}!", response.text)
+        check("/users/me узнаёт админа", response.json().get("username") == admin, response.text)
         response = client.get(f"{REST}/users/refresh", params={"token": refresh})
         check("refresh обменян на access", "access_token" in response.json(), response.text)
         response = client.get(f"{REST}/users/me", headers=auth(refresh))

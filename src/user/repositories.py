@@ -35,12 +35,6 @@ class UserRepository:
             return None
         return self._to_entity(row)
 
-    async def get_by_id(self, user_id):
-        row = await self._row_by_id(user_id)
-        if not row:
-            return None
-        return self._to_entity(row)
-
     async def get_all(self):
         result = await self.session.execute(select(User))
         return [self._to_entity(row) for row in result.scalars().all()]
