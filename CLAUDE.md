@@ -4,7 +4,7 @@
 
 ## Stack
 
-- Python 3.10, FastAPI, Pydantic v2
+- Python 3.12, FastAPI, Pydantic v2
 - REST `/v1/api`
 - GraphQL `/v1/gql` на Strawberry
 - PostgreSQL, SQLAlchemy 2.0 async, asyncpg, Alembic
@@ -29,7 +29,7 @@
 - После каждого изменения запускай по порядку:
   1. `uv run ruff format .`
   2. `uv run ruff check .`
-  3. `uvx pyright`
+  3. `uvx pyrefly check`
   4. `make test`
 
 ## Conventions

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import bcrypt
 from jose import JWTError, jwt
@@ -94,7 +94,7 @@ class UserService:
     @staticmethod
     def create_token(data, expires_delta):
         payload = data.copy()
-        expire = datetime.now(timezone.utc) + expires_delta
+        expire = datetime.now(UTC) + expires_delta
         payload.update({"exp": expire})
         return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -104,11 +104,7 @@ class UserService:
             payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
             exp = payload.get("exp")
             current_token_type = payload.get("type")
-            if (
-                current_token_type != token_type
-                or not exp
-                or datetime.now(timezone.utc) > datetime.fromtimestamp(exp, timezone.utc)
-            ):
+            if current_token_type != token_type or not exp or datetime.now(UTC) > datetime.fromtimestamp(exp, UTC):
                 raise InvalidTokenError()
             return payload.get("sub")
         except JWTError as error:

@@ -3,7 +3,7 @@ name = "python-intermediate"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 dependencies = [
     "alembic>=1.18.5",
     "asyncpg>=0.31.0",
@@ -31,16 +31,15 @@ extend-select = ["B", "I", "UP"]
 [tool.ruff.lint.flake8-bugbear]
 extend-immutable-calls = ["fastapi.Depends", "fastapi.Path"]
 
-[tool.pyright]
-venvPath = "."
-venv = ".venv"
-extraPaths = ["src"]
-
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
+
+[tool.pyrefly]
+search-path = ["src"]
+infer-with-first-use = false
 
 [dependency-groups]
 dev = [

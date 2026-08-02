@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class Permission(str, Enum):
+class Permission(StrEnum):
     VIEW_PRODUCT = "view_product"
     ADD_PRODUCT = "add_product"
     UPDATE_PRODUCT = "update_product"
