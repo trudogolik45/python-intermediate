@@ -5,7 +5,12 @@ from jose import JWTError, jwt
 
 from core.exceptions import ServiceError
 from core.user.entities import AdminUser, RegularUser
-from core.user.exceptions import InvalidCredentialsError, InvalidTokenError, UserAlreadyExistsError
+from core.user.exceptions import (
+    InvalidCredentialsError,
+    InvalidTokenError,
+    UserAlreadyExistsError,
+    UserNotFoundError,
+)
 from infrastructure.exceptions import UnitOfWorkError
 from infrastructure.unit_of_work import UnitOfWork
 from user.repositories import UserRepository
@@ -49,6 +54,16 @@ class UserService:
 
     async def get_all_users(self):
         return await self.repository.get_all()
+
+    async def patch_user(self, user_id, is_admin):
+        try:
+            async with self.uow:
+                user = await self.repository.update(user_id, is_admin)
+                if not user:
+                    raise UserNotFoundError(user_id)
+                return user
+        except UnitOfWorkError as error:
+            raise ServiceError("Failed to update user") from error
 
     async def get_current_user(self, token):
         username = self.verify_token(token, "access")

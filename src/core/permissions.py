@@ -7,5 +7,6 @@ class Permission(StrEnum):
     UPDATE_PRODUCT = "update_product"
     DELETE_PRODUCT = "delete_product"
     VIEW_USER = "view_user"
+    UPDATE_USER = "update_user"
     VIEW_FILE = "view_file"
     UPLOAD_FILE = "upload_file"

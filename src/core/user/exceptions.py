@@ -7,6 +7,11 @@ class UserAlreadyExistsError(UserError):
         super().__init__(f"User {username} already exists")
 
 
+class UserNotFoundError(UserError):
+    def __init__(self, user_id):
+        super().__init__(f"User {user_id} not found")
+
+
 class InvalidCredentialsError(UserError):
     def __init__(self):
         super().__init__("Invalid username or password")
