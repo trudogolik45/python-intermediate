@@ -115,3 +115,7 @@ GraphQL на `/v1/gql`:
 - `make down` — остановить
 - `uv run alembic upgrade head` — накатить миграции, с хоста
 - `make test` — прогнать тесты в изолированном стеке
+
+## Лицензия
+
+[MIT](LICENSE).

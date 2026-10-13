@@ -11,3 +11,6 @@ wheels/
 
 # Uploaded files
 media/
+
+# Локальные переменные окружения — шаблон в .env.example
+.env
